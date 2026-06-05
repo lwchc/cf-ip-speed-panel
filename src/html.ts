@@ -267,7 +267,6 @@ export function renderHtml(): string {
         </div>
         <div class="info-block">
           <h3>插件下载</h3>
-          <p>推荐直接使用一键安装命令，脚本会自动识别 OpenWrt 版本、CPU 架构和包管理器，并安装客户端与 LuCI 插件。</p>
           <div class="download-actions">
             <a class="btn" href="https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.3" target="_blank" rel="noopener noreferrer">下载插件</a>
           </div>
