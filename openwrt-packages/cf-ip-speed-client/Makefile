@@ -4,6 +4,8 @@ PKG_NAME:=cf-ip-speed-client
 PKG_VERSION:=0.1.0
 PKG_RELEASE:=1
 PKGARCH:=all
+PKG_LICENSE:=MIT
+PKG_MAINTAINER:=10000ge10000 <10000ge10000@users.noreply.github.com>
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -17,6 +19,9 @@ endef
 define Package/cf-ip-speed-client/description
   OpenWrt client for cf-ip-speed-panel. It runs cfst, checks whether traffic
   is likely direct, and uploads speed test results to a Worker endpoint.
+endef
+
+define Build/Prepare
 endef
 
 define Build/Compile
