@@ -64,4 +64,10 @@ jobs:
           if ! gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG_NAME" --notes "Cloudflare IP 优选助手 OpenWrt IPK 构建产物。"
           fi
-          gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY" artifacts/**/*.ipk --clobber
+          mapfile -t ipks < <(find artifacts -type f -name "*.ipk" | sort)
+          if [ "${#ipks[@]}" -eq 0 ]; then
+            find artifacts -type f -maxdepth 8 -print
+            echo "No IPK files found"
+            exit 1
+          fi
+          gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY" "${ipks[@]}" --clobber
