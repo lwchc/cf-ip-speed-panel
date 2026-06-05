@@ -92,20 +92,26 @@ jobs:
           FEED_DIR: ${{ github.workspace }}/openwrt-packages
           NO_SHFMT_CHECK: 1
 
-      - name: Collect project IPK files
+      - name: Collect project package files
         if: ${{ github.event.inputs.build_profile == 'all' || github.event.inputs.build_profile == matrix.profile }}
         run: |
           mkdir -p release-assets
-          find bin/packages -type f \( -name "cf-ip-speed-client_*.ipk" -o -name "luci-app-cf-ip-speed-client_*.ipk" \) -print -exec cp {} release-assets/ \;
-          test -n "$(find release-assets -type f -name '*.ipk' -print -quit)"
+          find bin/packages -type f \( \
+            -name "cf-ip-speed-client_*.ipk" -o \
+            -name "luci-app-cf-ip-speed-client_*.ipk" -o \
+            -name "cf-ip-speed-client_*.apk" -o \
+            -name "luci-app-cf-ip-speed-client_*.apk" \
+          \) -print -exec cp {} release-assets/ \;
+          test -n "$(find release-assets -type f \( -name '*.ipk' -o -name '*.apk' \) -print -quit)"
 
-      - name: Upload IPK artifacts
+      - name: Upload package artifacts
         if: ${{ github.event.inputs.build_profile == 'all' || github.event.inputs.build_profile == matrix.profile }}
         uses: actions/upload-artifact@v4
         with:
           name: cf-ip-speed-client-${{ matrix.label }}
           path: |
             release-assets/*.ipk
+            release-assets/*.apk
             logs/**/*.txt
           if-no-files-found: error
 
@@ -131,14 +137,19 @@ jobs:
             gh release create "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG_NAME" --notes "Cloudflare IP 优选助手 OpenWrt IPK 手动构建产物。"
           fi
           mkdir -p release-assets
-          while IFS= read -r ipk; do
-            target="$(printf "%s" "$ipk" | sed -n 's#artifacts/cf-ip-speed-client-\([^/]*\)/.*#\1#p')"
-            cp "$ipk" "release-assets/${target}-$(basename "$ipk")"
-          done < <(find artifacts -type f \( -name "cf-ip-speed-client_*.ipk" -o -name "luci-app-cf-ip-speed-client_*.ipk" \) | sort)
-          mapfile -t ipks < <(find release-assets -type f -name "*.ipk" | sort)
-          if [ "${#ipks[@]}" -eq 0 ]; then
+          while IFS= read -r pkg; do
+            target="$(printf "%s" "$pkg" | sed -n 's#artifacts/cf-ip-speed-client-\([^/]*\)/.*#\1#p')"
+            cp "$pkg" "release-assets/${target}-$(basename "$pkg")"
+          done < <(find artifacts -type f \( \
+            -name "cf-ip-speed-client_*.ipk" -o \
+            -name "luci-app-cf-ip-speed-client_*.ipk" -o \
+            -name "cf-ip-speed-client_*.apk" -o \
+            -name "luci-app-cf-ip-speed-client_*.apk" \
+          \) | sort)
+          mapfile -t packages < <(find release-assets -type f \( -name "*.ipk" -o -name "*.apk" \) | sort)
+          if [ "${#packages[@]}" -eq 0 ]; then
             find artifacts -maxdepth 8 -type f -print
-            echo "No IPK files found"
+            echo "No package files found"
             exit 1
           fi
-          gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY" "${ipks[@]}" --clobber
+          gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY" "${packages[@]}" --clobber
