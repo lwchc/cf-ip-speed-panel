@@ -266,22 +266,22 @@ export function renderHtml(): string {
           <p>面板：<a href="https://cf.6610000.xyz" target="_blank" rel="noopener noreferrer">cf.6610000.xyz</a></p>
         </div>
         <div class="info-block">
+          <h3>插件下载</h3>
+          <p>推荐直接使用一键安装命令，脚本会自动识别 OpenWrt 版本、CPU 架构和包管理器，并安装客户端与 LuCI 插件。</p>
+          <div class="download-actions">
+            <a class="btn" href="https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.3" target="_blank" rel="noopener noreferrer">下载插件</a>
+          </div>
+          <p class="meta">点击下面命令可一键复制：</p>
+          <code class="install-command" title="点击复制安装命令" data-copy="sh -c &quot;$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)&quot;" data-copy-label="安装命令">sh -c "$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)"</code>
+        </div>
+        <div class="info-block">
           <h3>怎么使用</h3>
           <ol>
             <li>安装插件并填写昵称。</li>
-            <li>点击测速并上传。</li>
-            <li>复制页面中的域名或 IP 使用。</li>
+            <li>选择测速方式并启用。</li>
+            <li>等待定时测速，或在 LuCI 中手动测速上传。</li>
+            <li>回到页面复制推荐域名或 IP 使用。</li>
           </ol>
-        </div>
-        <div class="info-block">
-          <h3>OpenWrt 下载</h3>
-          <p>IPK：OpenWrt 23 / 24 opkg 系统。x86 已发布，ARM/MIPS 可在 Actions 手动构建。</p>
-          <p>夸克网盘：用于后续放置整合包或视频教程附件。</p>
-          <div class="download-actions">
-            <a class="btn" href="https://github.com/10000ge10000/cf-ip-speed-panel/releases" target="_blank" rel="noopener noreferrer">下载 IPK</a>
-            <a class="btn disabled" href="#" aria-disabled="true">夸克网盘（待补分享链接）</a>
-          </div>
-          <code class="install-command" title="点击复制安装命令" data-copy="sh -c &quot;$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)&quot;" data-copy-label="安装命令">sh -c "$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)"</code>
         </div>
       </div>
     </section>
