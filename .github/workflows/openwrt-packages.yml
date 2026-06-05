@@ -64,9 +64,14 @@ jobs:
           if ! gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG_NAME" --notes "Cloudflare IP 优选助手 OpenWrt IPK 构建产物。"
           fi
-          mapfile -t ipks < <(find artifacts -type f -name "*.ipk" | sort)
+          mkdir -p release-assets
+          while IFS= read -r ipk; do
+            target="$(printf "%s" "$ipk" | sed -n 's#artifacts/cf-ip-speed-client-\([^/]*\)/.*#\1#p')"
+            cp "$ipk" "release-assets/${target}-$(basename "$ipk")"
+          done < <(find artifacts -type f \( -name "cf-ip-speed-client_*.ipk" -o -name "luci-app-cf-ip-speed-client_*.ipk" \) | sort)
+          mapfile -t ipks < <(find release-assets -type f -name "*.ipk" | sort)
           if [ "${#ipks[@]}" -eq 0 ]; then
-            find artifacts -type f -maxdepth 8 -print
+            find artifacts -maxdepth 8 -type f -print
             echo "No IPK files found"
             exit 1
           fi
