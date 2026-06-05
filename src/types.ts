@@ -4,6 +4,7 @@ export interface Env {
   SPEED_TEST_KV: KVNamespace;
   DB: D1Database;
   UPLOAD_TOKEN: string;
+  ADMIN_TOKEN?: string;
   DNS_API_TOKEN?: string;
   DNS_ZONE_ID?: string;
   DNS_ROOT_DOMAIN?: string;

@@ -58,11 +58,14 @@ export async function registerDevice(db: D1Database, input: RegisterInput): Prom
   if (!nickname) {
     return { error: '昵称不能为空，只能包含中文、英文、数字、下划线和短横线，长度 2-24 个字符', status: 400 };
   }
-  if (isDisallowedNickname(nickname)) {
+  if (await isDisallowedNickname(db, nickname)) {
     return { error: '昵称包含不适合公开展示的内容，请更换昵称', status: 400 };
   }
 
-  const existing = await db.prepare('SELECT id FROM users WHERE nickname = ?1').bind(nickname).first<{ id: string }>();
+  const existing = await db.prepare('SELECT id, status FROM users WHERE nickname = ?1').bind(nickname).first<{ id: string; status: string }>();
+  if (existing?.status !== undefined && existing.status !== 'active') {
+    return { error: '该昵称不可用，请更换昵称', status: 403 };
+  }
   if (existing && nickname !== REUSABLE_NICKNAME) {
     return { error: '昵称已被占用，请更换昵称', status: 409 };
   }
@@ -108,7 +111,7 @@ export async function validateDevice(db: D1Database, deviceId: string, deviceTok
       `SELECT devices.id, devices.user_id, devices.token_hash, devices.status, users.nickname
        FROM devices
        JOIN users ON users.id = devices.user_id
-       WHERE devices.id = ?1 AND users.status = 'active'`
+       WHERE devices.id = ?1 AND users.status = 'active' AND devices.status = 'active'`
     )
     .bind(deviceId)
     .first<StoredDevice>();
@@ -212,6 +215,8 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
         node_results.created_at
        FROM node_results
        JOIN uploads ON uploads.id = node_results.upload_id
+       JOIN devices ON devices.id = uploads.device_id
+       JOIN users ON users.id = devices.user_id
        JOIN (
          SELECT device_id, MAX(created_at) AS created_at
          FROM uploads
@@ -220,6 +225,8 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
          ON latest_uploads.device_id = uploads.device_id
         AND latest_uploads.created_at = uploads.created_at
        WHERE node_results.trusted = 1
+         AND devices.status = 'active'
+         AND users.status = 'active'
          AND uploads.server_province_code != 'unknown'
          AND uploads.server_carrier IN ('ct', 'cm', 'cu')
          AND node_results.created_at >= ?1
@@ -342,6 +349,81 @@ export async function recentlyUpdatedDns(db: D1Database, hostname: string, minut
   return Boolean(row);
 }
 
+export async function listRecentUploads(db: D1Database, limit: number): Promise<unknown[]> {
+  const rows = await db
+    .prepare(
+      `SELECT
+        uploads.id,
+        uploads.device_id,
+        uploads.nickname,
+        uploads.client_ip,
+        uploads.server_province_code,
+        uploads.server_province_name,
+        uploads.server_carrier,
+        uploads.proxy_suspected,
+        uploads.egress_ip,
+        uploads.egress_asn,
+        uploads.created_at,
+        devices.status AS device_status,
+        users.status AS user_status
+       FROM uploads
+       JOIN devices ON devices.id = uploads.device_id
+       JOIN users ON users.id = devices.user_id
+       ORDER BY uploads.created_at DESC
+       LIMIT ?1`
+    )
+    .bind(limit)
+    .all();
+  return rows.results ?? [];
+}
+
+export async function blockDevice(db: D1Database, deviceId: string, reason: string): Promise<void> {
+  const now = new Date().toISOString();
+  await db.batch([
+    db.prepare('UPDATE devices SET status = ?1 WHERE id = ?2').bind('blocked', deviceId),
+    db.prepare('INSERT INTO admin_events (id, action, target_type, target_id, reason, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(
+      crypto.randomUUID(),
+      'block',
+      'device',
+      deviceId,
+      reason,
+      now
+    )
+  ]);
+}
+
+export async function blockNickname(db: D1Database, nickname: string, reason: string): Promise<void> {
+  const now = new Date().toISOString();
+  await db.batch([
+    db.prepare('UPDATE users SET status = ?1 WHERE nickname = ?2').bind('blocked', nickname),
+    db.prepare('UPDATE devices SET status = ?1 WHERE user_id IN (SELECT id FROM users WHERE nickname = ?2)').bind('blocked', nickname),
+    db.prepare('INSERT INTO admin_events (id, action, target_type, target_id, reason, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(
+      crypto.randomUUID(),
+      'block',
+      'nickname',
+      nickname,
+      reason,
+      now
+    )
+  ]);
+}
+
+export async function listBadWords(db: D1Database): Promise<unknown[]> {
+  const rows = await db.prepare('SELECT pattern, reason, created_at FROM bad_words ORDER BY created_at DESC').all();
+  return rows.results ?? [];
+}
+
+export async function addBadWord(db: D1Database, pattern: string, reason: string): Promise<void> {
+  await db
+    .prepare('INSERT OR REPLACE INTO bad_words (id, pattern, reason, created_at) VALUES (COALESCE((SELECT id FROM bad_words WHERE pattern = ?1), ?2), ?1, ?3, ?4)')
+    .bind(pattern.trim(), crypto.randomUUID(), reason, new Date().toISOString())
+    .run();
+}
+
+export async function removeBadWord(db: D1Database, pattern: string): Promise<void> {
+  await db.prepare('DELETE FROM bad_words WHERE pattern = ?1').bind(pattern.trim()).run();
+}
+
 export function normalizeNickname(value: string): string {
   const nickname = value.trim();
   if (!/^[\u4e00-\u9fa5A-Za-z0-9_-]{2,24}$/.test(nickname)) {
@@ -350,11 +432,15 @@ export function normalizeNickname(value: string): string {
   return nickname;
 }
 
-function isDisallowedNickname(nickname: string): boolean {
+async function isDisallowedNickname(db: D1Database, nickname: string): Promise<boolean> {
   if (nickname === REUSABLE_NICKNAME) {
     return false;
   }
-  return NICKNAME_DENY_PATTERNS.some((pattern) => pattern.test(nickname));
+  if (NICKNAME_DENY_PATTERNS.some((pattern) => pattern.test(nickname))) {
+    return true;
+  }
+  const words = await db.prepare('SELECT pattern FROM bad_words').all<{ pattern: string }>();
+  return (words.results ?? []).some((row) => row.pattern && nickname.toLowerCase().includes(row.pattern.toLowerCase()));
 }
 
 async function sha256(value: string): Promise<string> {

@@ -32,7 +32,8 @@
 	],
 	"secrets": {
 		"required": [
-			"UPLOAD_TOKEN"
+			"UPLOAD_TOKEN",
+			"ADMIN_TOKEN"
 		]
 	},
 	"d1_databases": [

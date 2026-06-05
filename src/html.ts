@@ -171,6 +171,19 @@ export function renderHtml(): string {
     .info-block ol { padding-left: 20px; }
     .download-actions { display: grid; gap: 8px; margin-top: 10px; }
     .download-actions .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+    .install-command {
+      display: block;
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f766e;
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
     pre {
       margin: 10px 0 0;
       padding: 12px;
@@ -262,12 +275,13 @@ export function renderHtml(): string {
         </div>
         <div class="info-block">
           <h3>OpenWrt 下载</h3>
-          <p>IPK：OpenWrt 24.10 及以下 opkg 系统。</p>
-          <p>APK：后续使用 apk 包管理器的新版本 OpenWrt。</p>
+          <p>IPK：OpenWrt 23 / 24 opkg 系统。x86 已发布，ARM/MIPS 可在 Actions 手动构建。</p>
+          <p>夸克网盘：用于后续放置整合包或视频教程附件。</p>
           <div class="download-actions">
             <a class="btn" href="https://github.com/10000ge10000/cf-ip-speed-panel/releases" target="_blank" rel="noopener noreferrer">下载 IPK</a>
-            <a class="btn disabled" href="#" aria-disabled="true">下载 APK（待 OpenWrt apk 包生态稳定后补充）</a>
+            <a class="btn disabled" href="#" aria-disabled="true">夸克网盘（待补分享链接）</a>
           </div>
+          <code class="install-command" title="点击复制安装命令" data-copy="sh -c &quot;$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)&quot;" data-copy-label="安装命令">sh -c "$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)"</code>
         </div>
       </div>
     </section>
@@ -296,6 +310,9 @@ export function renderHtml(): string {
     const provinceChips = document.getElementById('provinceChips');
 
     document.getElementById('refreshBtn').addEventListener('click', loadLatest);
+    document.querySelectorAll('.install-command[data-copy]').forEach((node) => {
+      node.addEventListener('click', () => copyText(node.dataset.copy, node.dataset.copyLabel));
+    });
     carrierChips.addEventListener('click', (event) => {
       const chip = event.target.closest('[data-carrier]');
       if (!chip) return;

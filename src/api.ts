@@ -1,4 +1,5 @@
 import { checkKv, readHistoryIndex, readLatest, readRawLatest, writeLatest } from './storage';
+import { handleAdminApi } from './admin-api';
 import { handlePublicApi } from './public-api';
 import type { Carrier, DomainMapping, Env, HistorySummary, NodeRecord, UploadNodeInput, UploadPayload } from './types';
 import {
@@ -21,6 +22,9 @@ export async function handleApi(request: Request, env: Env, ctx: ExecutionContex
 
   if (url.pathname.startsWith('/api/public/')) {
     return handlePublicApi(request, env, ctx);
+  }
+  if (url.pathname.startsWith('/api/admin/')) {
+    return handleAdminApi(request, env);
   }
 
   if (request.method === 'GET' && url.pathname === '/api/health') {
