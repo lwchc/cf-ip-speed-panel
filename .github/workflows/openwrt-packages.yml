@@ -1,32 +1,90 @@
-name: Build OpenWrt packages
+name: Manual OpenWrt package build
 
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - "v*"
   workflow_dispatch:
+    inputs:
+      build_profile:
+        description: "Build profile"
+        required: true
+        default: "stable"
+        type: choice
+        options:
+          - stable
+          - snapshot
+          - all
+      publish_release:
+        description: "Upload project IPK files to GitHub Release"
+        required: true
+        default: false
+        type: boolean
+      release_tag:
+        description: "Release tag used only when publish_release is true"
+        required: false
+        default: "v0.1.3"
 
 permissions:
   contents: write
 
 jobs:
   build-ipk:
-    name: Build IPK (${{ matrix.arch }})
+    name: Build IPK (${{ matrix.label }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - x86_64-24.10.6
-          - x86_64-23.05.5
+        include:
+          - label: x86_64-23.05.5
+            arch: x86_64-23.05.5
+            profile: stable
+          - label: aarch64_cortex-a53-23.05.5
+            arch: aarch64_cortex-a53-23.05.5
+            profile: stable
+          - label: aarch64_cortex-a72-23.05.5
+            arch: aarch64_cortex-a72-23.05.5
+            profile: stable
+          - label: arm_cortex-a7_neon-vfpv4-23.05.5
+            arch: arm_cortex-a7_neon-vfpv4-23.05.5
+            profile: stable
+          - label: mips_24kc-23.05.5
+            arch: mips_24kc-23.05.5
+            profile: stable
+          - label: x86_64-24.10.6
+            arch: x86_64-24.10.6
+            profile: stable
+          - label: aarch64_cortex-a53-24.10.6
+            arch: aarch64_cortex-a53-24.10.6
+            profile: stable
+          - label: aarch64_cortex-a72-24.10.6
+            arch: aarch64_cortex-a72-24.10.6
+            profile: stable
+          - label: arm_cortex-a7_neon-vfpv4-24.10.6
+            arch: arm_cortex-a7_neon-vfpv4-24.10.6
+            profile: stable
+          - label: mips_24kc-24.10.6
+            arch: mips_24kc-24.10.6
+            profile: stable
+          - label: snapshot-x86_64
+            arch: x86_64
+            profile: snapshot
+          - label: snapshot-aarch64_cortex-a53
+            arch: aarch64_cortex-a53
+            profile: snapshot
+          - label: snapshot-aarch64_cortex-a72
+            arch: aarch64_cortex-a72
+            profile: snapshot
+          - label: snapshot-arm_cortex-a7_neon-vfpv4
+            arch: arm_cortex-a7_neon-vfpv4
+            profile: snapshot
+          - label: snapshot-mips_24kc
+            arch: mips_24kc
+            profile: snapshot
     steps:
       - name: Checkout
+        if: ${{ github.event.inputs.build_profile == 'all' || github.event.inputs.build_profile == matrix.profile }}
         uses: actions/checkout@v4
 
       - name: Build packages with OpenWrt SDK
+        if: ${{ github.event.inputs.build_profile == 'all' || github.event.inputs.build_profile == matrix.profile }}
         uses: openwrt/gh-action-sdk@main
         env:
           ARCH: ${{ matrix.arch }}
@@ -34,18 +92,26 @@ jobs:
           FEED_DIR: ${{ github.workspace }}/openwrt-packages
           NO_SHFMT_CHECK: 1
 
+      - name: Collect project IPK files
+        if: ${{ github.event.inputs.build_profile == 'all' || github.event.inputs.build_profile == matrix.profile }}
+        run: |
+          mkdir -p release-assets
+          find bin/packages -type f \( -name "cf-ip-speed-client_*.ipk" -o -name "luci-app-cf-ip-speed-client_*.ipk" \) -print -exec cp {} release-assets/ \;
+          test -n "$(find release-assets -type f -name '*.ipk' -print -quit)"
+
       - name: Upload IPK artifacts
+        if: ${{ github.event.inputs.build_profile == 'all' || github.event.inputs.build_profile == matrix.profile }}
         uses: actions/upload-artifact@v4
         with:
-          name: cf-ip-speed-client-${{ matrix.arch }}
+          name: cf-ip-speed-client-${{ matrix.label }}
           path: |
-            bin/packages/**/*.ipk
+            release-assets/*.ipk
             logs/**/*.txt
           if-no-files-found: error
 
   release:
     name: Publish GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ github.event.inputs.publish_release == 'true' }}
     needs: build-ipk
     runs-on: ubuntu-latest
     permissions:
@@ -59,10 +125,10 @@ jobs:
       - name: Create or update release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ github.event.inputs.release_tag }}
         run: |
           if ! gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG_NAME" --notes "Cloudflare IP 优选助手 OpenWrt IPK 构建产物。"
+            gh release create "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG_NAME" --notes "Cloudflare IP 优选助手 OpenWrt IPK 手动构建产物。"
           fi
           mkdir -p release-assets
           while IFS= read -r ipk; do
