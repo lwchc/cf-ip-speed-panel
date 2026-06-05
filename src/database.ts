@@ -414,10 +414,16 @@ export async function listBadWords(db: D1Database): Promise<unknown[]> {
 }
 
 export async function addBadWord(db: D1Database, pattern: string, reason: string): Promise<void> {
-  await db
-    .prepare('INSERT OR REPLACE INTO bad_words (id, pattern, reason, created_at) VALUES (COALESCE((SELECT id FROM bad_words WHERE pattern = ?1), ?2), ?1, ?3, ?4)')
-    .bind(pattern.trim(), crypto.randomUUID(), reason, new Date().toISOString())
-    .run();
+  const normalized = pattern.trim();
+  await db.batch([
+    db.prepare('DELETE FROM bad_words WHERE pattern = ?1').bind(normalized),
+    db.prepare('INSERT INTO bad_words (id, pattern, reason, created_at) VALUES (?1, ?2, ?3, ?4)').bind(
+      crypto.randomUUID(),
+      normalized,
+      reason,
+      new Date().toISOString()
+    )
+  ]);
 }
 
 export async function removeBadWord(db: D1Database, pattern: string): Promise<void> {
