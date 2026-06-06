@@ -1,4 +1,5 @@
 export type Carrier = 'ct' | 'cm' | 'cu' | 'other';
+export type IpVersion = 'v4' | 'v6';
 
 export interface Env {
   SPEED_TEST_KV: KVNamespace;
@@ -52,6 +53,7 @@ export interface PublicUploadPayload extends UploadPayload {
   device_id?: unknown;
   device_token?: unknown;
   device_name?: unknown;
+  ip_version?: unknown;
   client_region?: unknown;
   client_carrier?: unknown;
   direct_check?: unknown;
@@ -132,6 +134,7 @@ export interface ServerGeo {
 
 export interface PublicAggregate {
   key: string;
+  ip_version: IpVersion;
   province_code: string;
   province_name: string;
   carrier: Carrier;

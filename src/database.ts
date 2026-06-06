@@ -1,5 +1,5 @@
-import type { Carrier, DirectCheckResult, NodeRecord, PublicAggregate, RegisterResult, ServerGeo } from './types';
-import { carrierLabel, isIpv6Address } from './utils';
+import type { Carrier, DirectCheckResult, IpVersion, NodeRecord, PublicAggregate, RegisterResult, ServerGeo } from './types';
+import { carrierLabel } from './utils';
 
 const DEVICE_TOKEN_BYTES = 24;
 const AGGREGATE_WINDOW_HOURS = 24;
@@ -24,6 +24,7 @@ interface RegisterInput {
 interface UploadInput {
   deviceId: string;
   nickname: string;
+  ipVersion: IpVersion;
   serverGeo: ServerGeo;
   clientRegion?: string;
   clientCarrier?: Carrier;
@@ -41,6 +42,7 @@ interface StoredDevice {
 
 interface AggregateRow {
   key: string;
+  ip_version: IpVersion;
   province_code: string;
   province_name: string;
   carrier: Carrier;
@@ -136,15 +138,16 @@ export async function recordPublicUpload(db: D1Database, input: UploadInput): Pr
     db
       .prepare(
         `INSERT INTO uploads (
-          id, device_id, nickname, client_ip, cf_country, cf_region, cf_city, cf_asn, cf_as_organization,
+          id, device_id, nickname, ip_version, client_ip, cf_country, cf_region, cf_city, cf_asn, cf_as_organization,
           server_province_code, server_province_name, server_carrier, client_region, client_carrier,
           proxy_suspected, route_interface, egress_ip, egress_asn, direct_check_json, created_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)`
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)`
       )
       .bind(
         uploadId,
         input.deviceId,
         input.nickname,
+        input.ipVersion,
         input.serverGeo.ip,
         input.serverGeo.country ?? '',
         input.serverGeo.region ?? '',
@@ -205,6 +208,7 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
       `SELECT
         uploads.id AS upload_id,
         uploads.nickname,
+        uploads.ip_version,
         uploads.server_province_code,
         uploads.server_province_name,
         uploads.server_carrier,
@@ -220,11 +224,12 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
        JOIN devices ON devices.id = uploads.device_id
        JOIN users ON users.id = devices.user_id
        JOIN (
-         SELECT device_id, MAX(created_at) AS created_at
+         SELECT device_id, ip_version, MAX(created_at) AS created_at
          FROM uploads
-         GROUP BY device_id
+         GROUP BY device_id, ip_version
        ) latest_uploads
          ON latest_uploads.device_id = uploads.device_id
+        AND latest_uploads.ip_version = uploads.ip_version
         AND latest_uploads.created_at = uploads.created_at
        WHERE node_results.trusted = 1
          AND devices.status = 'active'
@@ -239,6 +244,7 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
     .all<{
       upload_id: string;
       nickname: string;
+      ip_version: IpVersion;
       server_province_code: string;
       server_province_name: string;
       server_carrier: Carrier;
@@ -253,13 +259,17 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
 
   const bestByKey = new Map<string, PublicAggregate>();
   for (const row of rows.results ?? []) {
-    const key = `${row.server_province_code}:${row.server_carrier}`;
+    const ipVersion = row.ip_version === 'v6' ? 'v6' : 'v4';
+    const key = `${row.server_province_code}:${row.server_carrier}:${ipVersion}`;
     if (bestByKey.has(key)) {
       continue;
     }
-    const hostname = `${row.server_province_code}.${row.server_carrier}.${rootDomain}`;
+    const hostname = ipVersion === 'v6'
+      ? `${row.server_province_code}.${row.server_carrier}.v6.${rootDomain}`
+      : `${row.server_province_code}.${row.server_carrier}.${rootDomain}`;
     bestByKey.set(key, {
       key,
+      ip_version: ipVersion,
       province_code: row.server_province_code,
       province_name: row.server_province_name,
       carrier: row.server_carrier,
@@ -267,7 +277,7 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
       hostname,
       ip: row.ip,
       port: row.port,
-      record_type: isIpv6Address(row.ip) ? 'AAAA' : 'A',
+      record_type: ipVersion === 'v6' ? 'AAAA' : 'A',
       speed: row.speed,
       latency: row.latency,
       loss: row.loss,
@@ -285,13 +295,14 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
       aggregates.map((item) =>
         db
           .prepare(
-            `INSERT INTO aggregates (
-              key, province_code, province_name, carrier, hostname, ip, port, record_type,
+          `INSERT INTO aggregates (
+              key, ip_version, province_code, province_name, carrier, hostname, ip, port, record_type,
               speed, latency, loss, colo, nickname, upload_id, updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)`
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`
           )
           .bind(
             item.key,
+            item.ip_version,
             item.province_code,
             item.province_name,
             item.carrier,
@@ -315,7 +326,7 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
 }
 
 export async function readAggregates(db: D1Database): Promise<PublicAggregate[]> {
-  const rows = await db.prepare('SELECT * FROM aggregates ORDER BY province_code ASC, carrier ASC').all<AggregateRow>();
+  const rows = await db.prepare('SELECT * FROM aggregates ORDER BY province_code ASC, carrier ASC, ip_version ASC').all<AggregateRow>();
   return (rows.results ?? []).map((row) => ({
     ...row,
     carrier_label: carrierLabel(row.carrier)
@@ -343,9 +354,12 @@ export async function recordDnsUpdate(db: D1Database, hostname: string, recordTy
     .run();
 }
 
-export async function recentlyUpdatedDns(db: D1Database, hostname: string, minutes: number): Promise<boolean> {
+export async function recentlyUpdatedDns(db: D1Database, hostname: string, recordType: string, minutes: number): Promise<boolean> {
   const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
-  const row = await db.prepare('SELECT id FROM dns_updates WHERE hostname = ?1 AND status = ?2 AND created_at >= ?3 LIMIT 1').bind(hostname, 'success', since).first();
+  const row = await db
+    .prepare('SELECT id FROM dns_updates WHERE hostname = ?1 AND record_type = ?2 AND status = ?3 AND created_at >= ?4 LIMIT 1')
+    .bind(hostname, recordType, 'success', since)
+    .first();
   return Boolean(row);
 }
 
@@ -356,6 +370,7 @@ export async function listRecentUploads(db: D1Database, limit: number): Promise<
         uploads.id,
         uploads.device_id,
         uploads.nickname,
+        uploads.ip_version,
         uploads.client_ip,
         uploads.server_province_code,
         uploads.server_province_name,

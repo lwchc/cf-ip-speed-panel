@@ -66,13 +66,13 @@ return view.extend({
     var m = new form.Map(
       'cf_ip_speed_client',
       _('Cloudflare IP \u4f18\u9009\u52a9\u624b'),
-      _('\u6d4b\u901f\u671f\u95f4\u4f1a\u4e34\u65f6\u6682\u505c\u5e38\u89c1\u4ee3\u7406\u670d\u52a1\uff0c\u5b8c\u6210\u540e\u81ea\u52a8\u6062\u590d\uff1b\u7591\u4f3c\u4ee3\u7406\u6570\u636e\u4f1a\u4fdd\u5b58\u5c55\u793a\uff0c\u4f46\u4e0d\u4f1a\u53c2\u4e0e DNS \u4f18\u9009\u3002')
+      _('\u6d4b\u901f\u671f\u95f4\u4f1a\u4e34\u65f6\u6682\u505c\u5e38\u89c1\u4ee3\u7406\u670d\u52a1\uff0c\u5b8c\u6210\u540e\u81ea\u52a8\u6062\u590d\uff1b\u4f60\u53ef\u4ee5\u9009\u62e9\u53ea\u6d4b\u8bd5 IPv4 \u6216\u540c\u65f6\u6d4b\u8bd5 IPv4+IPv6\uff0c\u4e5f\u53ef\u4ee5\u9009\u62e9\u4ec5\u672c\u5730\u81ea\u7528\u4e0d\u4e0a\u4f20\u3002')
     );
 
     var s = m.section(form.NamedSection, 'main', 'client');
     s.anonymous = true;
-    s.tab('basic', _('基本设置'));
-    s.tab('log', _('日志'));
+    s.tab('basic', _('\u57fa\u672c\u8bbe\u7f6e'));
+    s.tab('log', _('\u65e5\u5fd7'));
 
     var links = s.taboption('basic', form.DummyValue, '_project_links', _('\u9879\u76ee\u94fe\u63a5'));
     links.rawhtml = true;
@@ -85,10 +85,25 @@ return view.extend({
     o.default = '0';
     o.rmempty = false;
 
+    o = s.taboption('basic', form.ListValue, 'upload_enabled', _('\u6570\u636e\u7528\u9014'));
+    o.value('1', _('\u4e0a\u4f20\u516c\u5f00\u4f17\u6d4b'));
+    o.value('0', _('\u4ec5\u672c\u5730\u81ea\u7528'));
+    o.default = '1';
+    o.rmempty = false;
+    o.description = _('\u81ea\u7528\u6a21\u5f0f\u53ea\u751f\u6210\u672c\u673a cfst \u7ed3\u679c\u6587\u4ef6\uff0c\u4e0d\u6ce8\u518c\u6635\u79f0\uff0c\u4e5f\u4e0d\u4e0a\u4f20\u6570\u636e\u3002');
+
+    o = s.taboption('basic', form.ListValue, 'ip_mode', _('IP \u6d4b\u8bd5\u8303\u56f4'));
+    o.value('v4', _('\u4ec5 IPv4'));
+    o.value('dual', _('IPv4 + IPv6'));
+    o.default = 'v4';
+    o.rmempty = false;
+    o.description = _('IPv4+IPv6 \u4f1a\u987a\u5e8f\u6267\u884c\u4e24\u6b21\u6d4b\u901f\uff1b\u5982\u679c\u8def\u7531\u5668\u6ca1\u6709 IPv6 \u9ed8\u8ba4\u8def\u7531\uff0c\u4f1a\u81ea\u52a8\u8df3\u8fc7 IPv6\u3002');
+
     o = s.taboption('basic', form.Value, 'nickname', _('\u6635\u79f0'));
     o.description = _('\u6635\u79f0\u5148\u5230\u5148\u5f97\uff0c\u6ce8\u518c\u540e\u4f1a\u5c55\u793a\u5728\u8d21\u732e\u5217\u8868\u4e2d\u3002');
     o.placeholder = '\u4e00\u4e07AI\u5206\u4eab';
     o.rmempty = false;
+    o.depends('upload_enabled', '1');
 
     o = s.taboption('basic', form.ListValue, 'schedule_mode', _('\u6d4b\u901f\u65b9\u5f0f'));
     o.value('interval', _('\u5468\u671f\u6027\u6d4b\u901f'));
@@ -120,15 +135,15 @@ return view.extend({
     };
     o.depends('schedule_mode', 'daily');
 
-    o = s.taboption('log', form.ListValue, 'log_clear_interval', _('日志定时清理'));
-    o.value('never', _('不自动清理'));
-    o.value('daily', _('每天清理'));
-    o.value('weekly', _('每周清理'));
-    o.value('monthly', _('每月清理'));
+    o = s.taboption('log', form.ListValue, 'log_clear_interval', _('\u65e5\u5fd7\u5b9a\u65f6\u6e05\u7406'));
+    o.value('never', _('\u4e0d\u81ea\u52a8\u6e05\u7406'));
+    o.value('daily', _('\u6bcf\u5929\u6e05\u7406'));
+    o.value('weekly', _('\u6bcf\u5468\u6e05\u7406'));
+    o.value('monthly', _('\u6bcf\u6708\u6e05\u7406'));
     o.default = 'weekly';
     o.rmempty = false;
 
-    o = s.taboption('log', form.ListValue, 'log_max_size', _('日志大小上限'));
+    o = s.taboption('log', form.ListValue, 'log_max_size', _('\u65e5\u5fd7\u5927\u5c0f\u4e0a\u9650'));
     o.value('102400', '100 KB');
     o.value('1048576', '1 MB');
     o.value('5242880', '5 MB');
@@ -139,6 +154,7 @@ return view.extend({
     o.cfgvalue = function(section_id) {
       return this.map.data.get('cf_ip_speed_client', section_id, 'device_id') || _('\u672a\u6ce8\u518c');
     };
+    o.depends('upload_enabled', '1');
 
     o = s.taboption('basic', form.DummyValue, 'last_status', _('\u6700\u8fd1\u72b6\u6001'));
     o.rawhtml = true;
@@ -156,6 +172,7 @@ return view.extend({
 
     var registerButton = s.taboption('basic', form.Button, '_register', _('\u6ce8\u518c\u6635\u79f0'));
     registerButton.inputstyle = 'apply';
+    registerButton.depends('upload_enabled', '1');
     registerButton.onclick = function() {
       showResult(_('\u6ce8\u518c\u6635\u79f0'), _('\u6b63\u5728\u6ce8\u518c\uff0c\u8bf7\u7a0d\u5019...'), false);
       return saveForm(m).then(function() {
@@ -167,10 +184,10 @@ return view.extend({
       });
     };
 
-    var runButton = s.taboption('basic', form.Button, '_run', _('\u7acb\u5373\u6d4b\u901f\u5e76\u4e0a\u4f20'));
+    var runButton = s.taboption('basic', form.Button, '_run', _('\u7acb\u5373\u6d4b\u901f'));
     runButton.inputstyle = 'action';
     runButton.onclick = function() {
-      showResult(_('\u6d4b\u901f\u4e0a\u4f20'), _('\u6b63\u5728\u542f\u52a8\u540e\u53f0\u6d4b\u901f\u4efb\u52a1\uff0c\u8bf7\u7a0d\u5019...'), false);
+      showResult(_('\u6d4b\u901f\u4efb\u52a1'), _('\u6b63\u5728\u542f\u52a8\u540e\u53f0\u6d4b\u901f\u4efb\u52a1\uff0c\u8bf7\u7a0d\u5019...'), false);
       return saveForm(m).then(function() {
         return fs.exec('/usr/bin/cf-ip-speed-client', ['run-background']);
       }).then(function(result) {
@@ -180,25 +197,25 @@ return view.extend({
       });
     };
 
-    var logButton = s.taboption('log', form.Button, '_show_log', _('查看日志'));
+    var logButton = s.taboption('log', form.Button, '_show_log', _('\u67e5\u770b\u65e5\u5fd7'));
     logButton.inputstyle = 'action';
     logButton.onclick = function() {
-      showResult(_('运行日志'), _('正在读取日志...'), false);
+      showResult(_('\u8fd0\u884c\u65e5\u5fd7'), _('\u6b63\u5728\u8bfb\u53d6\u65e5\u5fd7...'), false);
       return fs.exec('/usr/bin/cf-ip-speed-client', ['show-log']).then(function(result) {
-        showResult(_('运行日志'), commandMessage('', result), false);
+        showResult(_('\u8fd0\u884c\u65e5\u5fd7'), commandMessage('', result), false);
       }).catch(function(error) {
-        showResult(_('读取失败'), _('读取日志失败：') + permissionHint(error), false);
+        showResult(_('\u8bfb\u53d6\u5931\u8d25'), _('\u8bfb\u53d6\u65e5\u5fd7\u5931\u8d25\uff1a') + permissionHint(error), false);
       });
     };
 
-    var clearLogButton = s.taboption('log', form.Button, '_clear_log', _('清空日志'));
+    var clearLogButton = s.taboption('log', form.Button, '_clear_log', _('\u6e05\u7a7a\u65e5\u5fd7'));
     clearLogButton.inputstyle = 'remove';
     clearLogButton.onclick = function() {
-      showResult(_('清空日志'), _('正在清空日志...'), false);
+      showResult(_('\u6e05\u7a7a\u65e5\u5fd7'), _('\u6b63\u5728\u6e05\u7a7a\u65e5\u5fd7...'), false);
       return fs.exec('/usr/bin/cf-ip-speed-client', ['clear-log']).then(function(result) {
-        showResult(_('清空完成'), commandMessage(_('日志已清空。'), result), true);
+        showResult(_('\u6e05\u7a7a\u5b8c\u6210'), commandMessage(_('\u65e5\u5fd7\u5df2\u6e05\u7a7a\u3002'), result), true);
       }).catch(function(error) {
-        showResult(_('清空失败'), _('清空日志失败：') + permissionHint(error), false);
+        showResult(_('\u6e05\u7a7a\u5931\u8d25'), _('\u6e05\u7a7a\u65e5\u5fd7\u5931\u8d25\uff1a') + permissionHint(error), false);
       });
     };
 

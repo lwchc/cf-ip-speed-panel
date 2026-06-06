@@ -1,5 +1,7 @@
 config client 'main'
 	option enabled '0'
+	option upload_enabled '1'
+	option ip_mode 'v4'
 	option nickname ''
 	option device_id ''
 	option device_token ''

@@ -1,8 +1,8 @@
 import { readAggregates, readPublicCache, rebuildAggregates, recordPublicUpload, registerDevice, validateDevice, writePublicCache } from './database';
 import { updateDnsForAggregates } from './dns';
 import { detectCarrier, detectProvince, detectServerGeo } from './geo';
-import type { Carrier, DirectCheckResult, Env, NodeRecord, PublicUploadPayload, ServerGeo, UploadNodeInput } from './types';
-import { buildDataset, isIpAddress, jsonResponse, normalizeCarrier, sortNodes } from './utils';
+import type { Carrier, DirectCheckResult, Env, IpVersion, NodeRecord, PublicUploadPayload, ServerGeo, UploadNodeInput } from './types';
+import { buildDataset, isIpv4Address, isIpv6Address, jsonResponse, normalizeCarrier, normalizeIpVersion, sortNodes } from './utils';
 
 const MAX_PUBLIC_UPLOAD_NODES = 50;
 const DEFAULT_ROOT_DOMAIN = '6610000.xyz';
@@ -82,7 +82,8 @@ async function handlePublicUpload(request: Request, env: Env, ctx: ExecutionCont
     issuedDeviceToken = registered.device_token;
   }
 
-  const parsed = parsePublicNodes(payload);
+  const ipVersion = normalizeIpVersion(payload.ip_version);
+  const parsed = parsePublicNodes(payload, ipVersion);
   if (!parsed.ok) {
     return jsonResponse({ success: false, error: parsed.error }, 400);
   }
@@ -92,6 +93,7 @@ async function handlePublicUpload(request: Request, env: Env, ctx: ExecutionCont
   const uploadId = await recordPublicUpload(env.DB, {
     deviceId: effectiveDeviceId ?? '',
     nickname: effectiveNickname ?? '',
+    ipVersion,
     serverGeo,
     clientRegion: stringOrUndefined(payload.client_region ?? payload.region),
     clientCarrier: normalizeCarrier(payload.client_carrier ?? payload.carrier),
@@ -108,6 +110,7 @@ async function handlePublicUpload(request: Request, env: Env, ctx: ExecutionCont
     device_id: effectiveDeviceId,
     ...(issuedDeviceToken ? { device_token: issuedDeviceToken } : {}),
     nickname: effectiveNickname,
+    ip_version: ipVersion,
     server_geo: serverGeo,
     direct_check: directCheck,
     total: parsed.nodes.length
@@ -128,7 +131,7 @@ async function handlePublicLatest(env: Env): Promise<Response> {
   });
 }
 
-function parsePublicNodes(payload: PublicUploadPayload): { ok: true; nodes: NodeRecord[] } | { ok: false; error: string } {
+function parsePublicNodes(payload: PublicUploadPayload, ipVersion: IpVersion): { ok: true; nodes: NodeRecord[] } | { ok: false; error: string } {
   if (!Array.isArray(payload.nodes) || payload.nodes.length === 0) {
     return { ok: false, error: 'nodes 必须是非空数组' };
   }
@@ -140,7 +143,7 @@ function parsePublicNodes(payload: PublicUploadPayload): { ok: true; nodes: Node
   const nodes: NodeRecord[] = [];
 
   for (const [index, item] of payload.nodes.entries()) {
-    const parsed = parsePublicNode(item as UploadNodeInput, inheritedCarrier, inheritedRegion, inheritedSource, now, index);
+    const parsed = parsePublicNode(item as UploadNodeInput, ipVersion, inheritedCarrier, inheritedRegion, inheritedSource, now, index);
     if (!parsed.ok) {
       return parsed;
     }
@@ -155,6 +158,7 @@ function parsePublicNodes(payload: PublicUploadPayload): { ok: true; nodes: Node
 
 function parsePublicNode(
   item: UploadNodeInput,
+  ipVersion: IpVersion,
   inheritedCarrier: Carrier,
   inheritedRegion: string | undefined,
   inheritedSource: string | undefined,
@@ -162,8 +166,8 @@ function parsePublicNode(
   index: number
 ): { ok: true; node: NodeRecord } | { ok: false; error: string } {
   const ip = stringOrUndefined(item.ip);
-  if (!ip || !isIpAddress(ip)) {
-    return { ok: false, error: `nodes[${index}].ip 必须是合法 IPv4 或 IPv6 地址` };
+  if (!ip || (ipVersion === 'v6' ? !isIpv6Address(ip) : !isIpv4Address(ip))) {
+    return { ok: false, error: `nodes[${index}].ip 必须是合法 ${ipVersion === 'v6' ? 'IPv6' : 'IPv4'} 地址` };
   }
 
   const port = numberOrDefault(item.port, 443);

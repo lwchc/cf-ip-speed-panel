@@ -9,7 +9,7 @@ export async function updateDnsForAggregates(env: Env, aggregates: PublicAggrega
   }
 
   for (const aggregate of aggregates) {
-    if (await recentlyUpdatedDns(env.DB, aggregate.hostname, DNS_UPDATE_MIN_INTERVAL_MINUTES)) {
+    if (await recentlyUpdatedDns(env.DB, aggregate.hostname, aggregate.record_type, DNS_UPDATE_MIN_INTERVAL_MINUTES)) {
       continue;
     }
     await upsertDnsRecord(env, aggregate);

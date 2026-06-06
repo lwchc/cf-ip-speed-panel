@@ -93,14 +93,14 @@ export function renderHtml(): string {
     .panel { padding: 16px; margin-bottom: 16px; }
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
     .stat { padding: 14px; min-height: 84px; }
     .stat span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
     .stat strong { display: block; font-size: 21px; overflow-wrap: anywhere; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 12px; }
     .card {
       padding: 18px;
       min-width: 0;
@@ -111,7 +111,18 @@ export function renderHtml(): string {
       border-color: #a8d8ff;
       box-shadow: 0 18px 42px rgba(22, 119, 210, .14);
     }
-    .card-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+    .card.v6 {
+      border-color: rgba(15, 143, 127, .32);
+      box-shadow: 0 12px 34px rgba(15, 143, 127, .08);
+    }
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
     .badge {
       border: 1px solid rgba(56, 189, 248, .42);
       background: #eef7ff;
@@ -126,6 +137,11 @@ export function renderHtml(): string {
       background: #e9fbf7;
       color: #0b7669;
     }
+    .badge.ipv6 {
+      border-color: rgba(15, 143, 127, .34);
+      background: #e9fbf7;
+      color: #0b7669;
+    }
     .host, .ip { color: var(--accent); overflow-wrap: anywhere; }
     .host, .ip {
       cursor: pointer;
@@ -134,7 +150,8 @@ export function renderHtml(): string {
     }
     .host:hover, .ip:hover { background: #e8f7f5; color: #0b7669; }
     .host { font-size: 20px; font-weight: 800; margin: 0 0 12px; padding: 3px 4px; }
-    .ip { font-size: 26px; font-weight: 800; margin: 0 0 16px; padding: 3px 4px; }
+    .ip { font-size: 26px; font-weight: 800; margin: 0 0 16px; padding: 3px 4px; line-height: 1.18; }
+    .ip.v6 { font-size: 20px; line-height: 1.32; }
     .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .metric { background: var(--panel-2); border-radius: 8px; padding: 12px; min-height: 74px; }
     .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
@@ -244,6 +261,12 @@ export function renderHtml(): string {
         <button class="chip" data-carrier="cm">中国移动</button>
         <button class="chip" data-carrier="cu">中国联通</button>
       </div>
+      <div class="filter-group" id="ipVersionChips">
+        <span class="filter-label">类型</span>
+        <button class="chip active" data-ip-version="">全部</button>
+        <button class="chip" data-ip-version="v4">IPv4</button>
+        <button class="chip" data-ip-version="v6">IPv6</button>
+      </div>
       <div class="filter-group" id="provinceChips">
         <span class="filter-label">省份</span>
         <button class="chip active" data-province="">全部</button>
@@ -266,21 +289,22 @@ export function renderHtml(): string {
           <p>面板：<a href="https://cf.6610000.xyz" target="_blank" rel="noopener noreferrer">cf.6610000.xyz</a></p>
         </div>
         <div class="info-block">
-          <h3>插件下载</h3>
-          <div class="download-actions">
-            <a class="btn" href="https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.3" target="_blank" rel="noopener noreferrer">下载插件</a>
-          </div>
-          <p class="meta">点击下面命令可一键复制：</p>
-          <code class="install-command" title="点击复制安装命令" data-copy="sh -c &quot;$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)&quot;" data-copy-label="安装命令">sh -c "$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)"</code>
-        </div>
-        <div class="info-block">
           <h3>怎么使用</h3>
           <ol>
             <li>安装插件并填写昵称。</li>
-            <li>选择测速方式并启用。</li>
-            <li>等待定时测速，或在 LuCI 中手动测速上传。</li>
-            <li>回到页面复制推荐域名或 IP 使用。</li>
+            <li>点击测速并上传。</li>
+            <li>复制页面中的域名或 IP 使用。</li>
           </ol>
+        </div>
+        <div class="info-block">
+          <h3>OpenWrt 下载</h3>
+          <p>IPK：OpenWrt 23 / 24 opkg 系统。x86 已发布，ARM/MIPS 可在 Actions 手动构建。</p>
+          <p>夸克网盘：用于后续放置整合包或视频教程附件。</p>
+          <div class="download-actions">
+            <a class="btn" href="https://github.com/10000ge10000/cf-ip-speed-panel/releases" target="_blank" rel="noopener noreferrer">下载 IPK</a>
+            <a class="btn disabled" href="#" aria-disabled="true">夸克网盘（待补分享链接）</a>
+          </div>
+          <code class="install-command" title="点击复制安装命令" data-copy="sh -c &quot;$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)&quot;" data-copy-label="安装命令">sh -c "$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)"</code>
         </div>
       </div>
     </section>
@@ -299,6 +323,7 @@ export function renderHtml(): string {
     };
     let latestAggregates = [];
     let selectedCarrier = '';
+    let selectedIpVersion = '';
     let selectedProvince = '';
 
     const aggregatesEl = document.getElementById('aggregates');
@@ -306,6 +331,7 @@ export function renderHtml(): string {
     const noticeEl = document.getElementById('notice');
     const updatedAtEl = document.getElementById('updatedAt');
     const carrierChips = document.getElementById('carrierChips');
+    const ipVersionChips = document.getElementById('ipVersionChips');
     const provinceChips = document.getElementById('provinceChips');
 
     document.getElementById('refreshBtn').addEventListener('click', loadLatest);
@@ -317,6 +343,13 @@ export function renderHtml(): string {
       if (!chip) return;
       selectedCarrier = chip.dataset.carrier || '';
       updateActiveChips(carrierChips, 'carrier', selectedCarrier);
+      renderAggregates();
+    });
+    ipVersionChips.addEventListener('click', (event) => {
+      const chip = event.target.closest('[data-ip-version]');
+      if (!chip) return;
+      selectedIpVersion = chip.dataset.ipVersion || '';
+      updateActiveChips(ipVersionChips, 'ip-version', selectedIpVersion);
       renderAggregates();
     });
     provinceChips.addEventListener('click', (event) => {
@@ -348,11 +381,13 @@ export function renderHtml(): string {
     function renderStats(data) {
       const provinces = new Set(latestAggregates.map((item) => item.province_code));
       const users = new Set(latestAggregates.map((item) => item.nickname));
+      const ipv6Total = latestAggregates.filter((item) => item.ip_version === 'v6').length;
       const bestSpeed = latestAggregates.reduce((max, item) => Math.max(max, Number(item.speed) || 0), 0);
       const items = [
         ['聚合记录', data.total || latestAggregates.length],
         ['覆盖省份', provinces.size],
         ['贡献用户', users.size],
+        ['IPv6 记录', ipv6Total],
         ['最快速度', bestSpeed + ' MB/s']
       ];
       statsEl.innerHTML = items.map(([label, value]) => '<div class="stat"><span>' + label + '</span><strong>' + value + '</strong></div>').join('');
@@ -361,23 +396,28 @@ export function renderHtml(): string {
     function renderAggregates() {
       const items = latestAggregates.filter((item) =>
         (!selectedCarrier || item.carrier === selectedCarrier) &&
+        (!selectedIpVersion || item.ip_version === selectedIpVersion) &&
         (!selectedProvince || item.province_code === selectedProvince)
       );
       if (!items.length) {
         aggregatesEl.innerHTML = '<div class="empty">暂无可用于自动 DNS 的可信聚合数据。</div>';
         return;
       }
-      aggregatesEl.innerHTML = items.map((item) => '<article class="card">'
-        + '<div class="card-top"><span class="badge">' + escapeHtml(item.province_name) + ' · ' + (carrierLabels[item.carrier] || item.carrier) + '</span><span class="badge">' + escapeHtml(formatColo(item.colo)) + '</span></div>'
+      aggregatesEl.innerHTML = items.map((item) => '<article class="card ' + (item.ip_version === 'v6' ? 'v6' : 'v4') + '">'
+        + '<div class="card-head"><div class="badge-row">'
+        + '<span class="badge">' + escapeHtml(item.province_name) + ' · ' + (carrierLabels[item.carrier] || item.carrier) + '</span>'
+        + '<span class="badge ' + (item.ip_version === 'v6' ? 'ipv6' : '') + '">' + escapeHtml(ipVersionLabel(item)) + '</span>'
+        + '<span class="badge good">可信直连</span>'
+        + '</div><span class="badge">' + escapeHtml(formatColo(item.colo)) + '</span></div>'
         + '<p class="host" title="点击复制域名" data-copy="' + escapeAttr(item.hostname) + '" data-copy-label="域名">' + escapeHtml(item.hostname) + '</p>'
-        + '<p class="ip" title="点击复制 IP" data-copy="' + escapeAttr(item.ip) + '" data-copy-label="IP">' + escapeHtml(item.ip) + '</p>'
+        + '<p class="ip ' + (item.ip_version === 'v6' ? 'v6' : 'v4') + '" title="点击复制 IP" data-copy="' + escapeAttr(item.ip) + '" data-copy-label="IP">' + escapeHtml(item.ip) + '</p>'
         + '<div class="metrics">'
         + '<div class="metric"><span>速度</span><strong>' + item.speed + ' MB/s</strong></div>'
         + '<div class="metric"><span>延迟</span><strong>' + item.latency + ' ms</strong></div>'
         + '<div class="metric"><span>归属</span><strong>' + escapeHtml(formatColo(item.colo)) + '</strong></div>'
         + '<div class="metric"><span>贡献者</span><strong>' + escapeHtml(item.nickname) + '</strong></div>'
         + '</div>'
-        + '<p class="sync-line">最后同步时间：' + escapeHtml(formatRelativeTime(item.updated_at)) + '</p>'
+        + '<p class="sync-line">最后同步时间：' + escapeHtml(formatRelativeTime(item.updated_at)) + '（北京时间 ' + escapeHtml(formatBeijingTime(item.updated_at)) + '）</p>'
         + '</article>').join('');
       aggregatesEl.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', () => copyText(node.dataset.copy, node.dataset.copyLabel)));
     }
@@ -442,6 +482,11 @@ export function renderHtml(): string {
       const colo = String(value || '').trim().toUpperCase();
       if (!colo || colo === 'N/A') return '归属未知';
       return (coloLabels[colo] || colo) + ' · ' + colo;
+    }
+
+    function ipVersionLabel(item) {
+      if (item.ip_version === 'v6') return 'IPv6 · AAAA';
+      return 'IPv4 · ' + (item.record_type || 'A');
     }
 
     function escapeHtml(value) {

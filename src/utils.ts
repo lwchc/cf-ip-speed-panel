@@ -1,4 +1,4 @@
-import type { ApiError, ApiSuccess, Carrier, NodeRecord, NodesDataset, NodesStats } from './types';
+import type { ApiError, ApiSuccess, Carrier, IpVersion, NodeRecord, NodesDataset, NodesStats } from './types';
 
 const CARRIER_LABELS: Record<Carrier, string> = {
   ct: '中国电信',
@@ -49,6 +49,10 @@ export function carrierLabel(carrier: Carrier): string {
 
 export function isCarrier(value: string): value is Carrier {
   return value === 'ct' || value === 'cm' || value === 'cu' || value === 'other';
+}
+
+export function normalizeIpVersion(value: unknown): IpVersion {
+  return value === 'v6' ? 'v6' : 'v4';
 }
 
 export function parseLimit(value: string | null, fallback: number, max: number): number {
@@ -104,6 +108,10 @@ export function sortNodes(nodes: NodeRecord[], sort: string | null): NodeRecord[
 
 export function isIpAddress(value: string): boolean {
   return isIpv4(value) || isIpv6(value);
+}
+
+export function isIpv4Address(value: string): boolean {
+  return isIpv4(value);
 }
 
 function isIpv4(value: string): boolean {
