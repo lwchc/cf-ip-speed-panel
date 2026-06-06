@@ -43,4 +43,13 @@ define Package/cf-ip-speed-client/install
 	$(INSTALL_BIN) ./files/usr/bin/cf-ip-speed-client $(1)/usr/bin/cf-ip-speed-client
 endef
 
+define Package/cf-ip-speed-client/postinst
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] && exit 0
+uci -q get cf_ip_speed_client.main.log_clear_interval >/dev/null || uci set cf_ip_speed_client.main.log_clear_interval='weekly'
+uci -q get cf_ip_speed_client.main.log_max_size >/dev/null || uci set cf_ip_speed_client.main.log_max_size='1048576'
+uci commit cf_ip_speed_client
+exit 0
+endef
+
 $(eval $(call BuildPackage,cf-ip-speed-client))
