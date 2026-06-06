@@ -44,12 +44,19 @@ detect_pkg_manager() {
 }
 
 detect_version() {
+  manager="$1"
   release="$(read_release_value DISTRIB_RELEASE)"
   case "$release" in
     23.*) echo "23.05.5" ;;
     24.*) echo "24.10.6" ;;
     *Buddha*|*2026*) echo "24.10.6" ;;
-    SNAPSHOT|snapshot|*SNAPSHOT*) echo "snapshot" ;;
+    SNAPSHOT|snapshot|*SNAPSHOT*)
+      if [ "$manager" = "apk" ]; then
+        echo "snapshot"
+      else
+        echo "${OPENWRT_BUILD_VERSION:-24.10.6}"
+      fi
+      ;;
     *) echo "${OPENWRT_BUILD_VERSION:-24.10.6}" ;;
   esac
 }
@@ -72,7 +79,7 @@ detect_arch_from_apk() {
 normalize_arch() {
   arch="$1"
   case "$arch" in
-    x86_64|aarch64_cortex-a53|aarch64_cortex-a72|arm_cortex-a7_neon-vfpv4|mips_24kc)
+    x86_64|aarch64_generic|aarch64_cortex-a53|aarch64_cortex-a72|arm_cortex-a7_neon-vfpv4|mips_24kc)
       echo "$arch"
       ;;
     aarch64|arm64)
@@ -118,7 +125,7 @@ build_package_names() {
   version="$2"
   arch="$3"
 
-  if [ "$manager" = "apk" ] || [ "$version" = "snapshot" ]; then
+  if [ "$manager" = "apk" ]; then
     version="snapshot"
     client_file="snapshot-${arch}-${CLIENT_PKG}-0.1.0-r1.apk"
     luci_file="snapshot-${arch}-${LUCI_PKG}-0.1.0-r1.apk"
@@ -161,7 +168,7 @@ need_cmd sed
 need_cmd awk
 
 manager="$(detect_pkg_manager)"
-version="$(detect_version)"
+version="$(detect_version "$manager")"
 arch="$(detect_arch)"
 build_package_names "$manager" "$version" "$arch"
 

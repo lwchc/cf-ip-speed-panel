@@ -42,6 +42,9 @@ jobs:
           - label: aarch64_cortex-a72-23.05.5
             arch: aarch64_cortex-a72-23.05.5
             profile: stable
+          - label: aarch64_generic-23.05.5
+            arch: aarch64_generic-23.05.5
+            profile: stable
           - label: arm_cortex-a7_neon-vfpv4-23.05.5
             arch: arm_cortex-a7_neon-vfpv4-23.05.5
             profile: stable
@@ -57,6 +60,9 @@ jobs:
           - label: aarch64_cortex-a72-24.10.6
             arch: aarch64_cortex-a72-24.10.6
             profile: stable
+          - label: aarch64_generic-24.10.6
+            arch: aarch64_generic-24.10.6
+            profile: stable
           - label: arm_cortex-a7_neon-vfpv4-24.10.6
             arch: arm_cortex-a7_neon-vfpv4-24.10.6
             profile: stable
@@ -71,6 +77,9 @@ jobs:
             profile: snapshot
           - label: snapshot-aarch64_cortex-a72
             arch: aarch64_cortex-a72
+            profile: snapshot
+          - label: snapshot-aarch64_generic
+            arch: aarch64_generic
             profile: snapshot
           - label: snapshot-arm_cortex-a7_neon-vfpv4
             arch: arm_cortex-a7_neon-vfpv4
