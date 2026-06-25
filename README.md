@@ -36,7 +36,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-p
 
 也可以到 Release 手动下载对应版本的两个包：
 
-[https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.3](https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.3)
+[https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.4](https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.4)
 
 必须安装这两个包：
 

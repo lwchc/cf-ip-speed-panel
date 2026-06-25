@@ -3,7 +3,7 @@
 set -eu
 
 REPO="10000ge10000/cf-ip-speed-panel"
-TAG="${TAG:-v0.1.3}"
+TAG="${TAG:-v0.1.4}"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
 TMP_DIR="/tmp/cf-ip-speed-install"
 CLIENT_PKG="cf-ip-speed-client"
