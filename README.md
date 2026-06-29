@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://cf.6610000.xyz">项目页面</a> ·
-  <a href="https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.4">插件下载</a> ·
+  <a href="https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.5">插件下载</a> ·
   <a href="https://github.com/10000ge10000/cf-ip-speed-panel">GitHub</a>
 </p>
 
@@ -43,6 +43,8 @@ gd.cm.6610000.xyz
 sh -c "$(wget -O- https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-panel/main/scripts/install-openwrt.sh)"
 ```
 
+一键安装脚本会同时安装 `cfst` 测速程序。如果你是手动下载 IPK/APK 安装，请先确保系统里能执行 `cfst`。
+
 如果系统没有 `wget`，可以使用：
 
 ```sh
@@ -51,7 +53,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/10000ge10000/cf-ip-speed-p
 
 也可以到 Release 手动下载对应版本的两个包：
 
-[https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.4](https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.4)
+[https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.5](https://github.com/10000ge10000/cf-ip-speed-panel/releases/tag/v0.1.5)
 
 必须安装这两个包：
 

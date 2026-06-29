@@ -3,8 +3,11 @@
 set -eu
 
 REPO="10000ge10000/cf-ip-speed-panel"
-TAG="${TAG:-v0.1.4}"
+TAG="${TAG:-v0.1.5}"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+CFST_REPO="XIU2/CloudflareSpeedTest"
+CFST_TAG="${CFST_TAG:-v2.3.5}"
+CFST_BASE_URL="https://github.com/${CFST_REPO}/releases/download/${CFST_TAG}"
 TMP_DIR="/tmp/cf-ip-speed-install"
 CLIENT_PKG="cf-ip-speed-client"
 LUCI_PKG="luci-app-cf-ip-speed-client"
@@ -97,6 +100,27 @@ normalize_arch() {
   esac
 }
 
+detect_cfst_asset() {
+  arch="$1"
+  case "$arch" in
+    x86_64)
+      echo "cfst_linux_amd64.tar.gz"
+      ;;
+    aarch64|arm64|aarch64_generic|aarch64_cortex-a53|aarch64_cortex-a72)
+      echo "cfst_linux_arm64.tar.gz"
+      ;;
+    armv7|armhf|arm_cortex-a7_neon-vfpv4)
+      echo "cfst_linux_armv7.tar.gz"
+      ;;
+    mips|mips_24kc)
+      echo "cfst_linux_mips.tar.gz"
+      ;;
+    *)
+      fail "当前架构暂未匹配到 cfst 二进制：${arch:-unknown}。可手动安装 CloudflareSpeedTest 后重试。"
+      ;;
+  esac
+}
+
 detect_arch() {
   arch="$(read_release_value DISTRIB_ARCH)"
   if [ -z "$arch" ] && has_cmd opkg; then
@@ -127,15 +151,15 @@ build_package_names() {
 
   if [ "$manager" = "apk" ]; then
     version="snapshot"
-    client_file="snapshot-all-${CLIENT_PKG}-0.1.0-r1.apk"
-    luci_file="snapshot-all-${LUCI_PKG}-0.1.0-r1.apk"
+    client_file="snapshot-all-${CLIENT_PKG}-0.1.0-r2.apk"
+    luci_file="snapshot-all-${LUCI_PKG}-0.1.0-r2.apk"
     package_ext="apk"
     return
   fi
 
   case "$version" in
-    23.05.5) package_release="-1" ;;
-    24.10.6) package_release="-r1" ;;
+    23.05.5) package_release="-2" ;;
+    24.10.6) package_release="-r2" ;;
     *) fail "当前版本暂未发布 Release 包：$version。可设置 OPENWRT_BUILD_VERSION=23.05.5 或 24.10.6 后重试。" ;;
   esac
 
@@ -155,6 +179,38 @@ install_packages() {
 
   need_cmd opkg
   opkg install --force-reinstall "./${CLIENT_PKG}.ipk" "./${LUCI_PKG}.ipk"
+}
+
+install_cfst() {
+  if has_cmd cfst && [ "${CFST_FORCE_INSTALL:-0}" != "1" ]; then
+    info "已检测到 cfst：$(command -v cfst)，跳过安装"
+    return
+  fi
+
+  need_cmd tar
+  cfst_asset="$(detect_cfst_asset "$arch")"
+  cfst_archive="cfst.tar.gz"
+  cfst_unpack="${TMP_DIR}/cfst-unpack"
+
+  info "安装 cfst：${CFST_TAG} / ${cfst_asset}"
+  rm -rf "$cfst_unpack"
+  mkdir -p "$cfst_unpack"
+  download "${CFST_BASE_URL}/${cfst_asset}" "$cfst_archive"
+  tar -xzf "$cfst_archive" -C "$cfst_unpack"
+
+  cfst_bin=""
+  if [ -f "$cfst_unpack/cfst" ]; then
+    cfst_bin="$cfst_unpack/cfst"
+  else
+    cfst_bin="$(find "$cfst_unpack" -type f -name cfst 2>/dev/null | head -n 1)"
+  fi
+  [ -n "$cfst_bin" ] || fail "cfst 压缩包中未找到 cfst 二进制文件"
+
+  chmod 755 "$cfst_bin"
+  cp "$cfst_bin" /usr/bin/cfst
+  chmod 755 /usr/bin/cfst
+  command -v cfst >/dev/null 2>&1 || fail "cfst 已复制但无法在 PATH 中找到"
+  info "cfst 安装完成：$(command -v cfst)"
 }
 
 reload_services() {
@@ -185,6 +241,7 @@ rm -f "${CLIENT_PKG}.ipk" "${LUCI_PKG}.ipk" "${CLIENT_PKG}.apk" "${LUCI_PKG}.apk
 
 download "${BASE_URL}/${client_file}" "${CLIENT_PKG}.${package_ext}"
 download "${BASE_URL}/${luci_file}" "${LUCI_PKG}.${package_ext}"
+install_cfst
 
 cp /etc/config/cf_ip_speed_client /tmp/cf_ip_speed_client.backup 2>/dev/null || true
 install_packages "$manager"

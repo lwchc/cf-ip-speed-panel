@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=cf-ip-speed-client
 PKG_VERSION:=0.1.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKGARCH:=all
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=10000ge10000 <10000ge10000@users.noreply.github.com>

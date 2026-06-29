@@ -89,7 +89,14 @@ json_escape() {
 
 require_command() {
 	if ! command -v "$1" >/dev/null 2>&1; then
-		set_status "error" "缺少命令：$1"
+		case "$1" in
+			cfst)
+				set_status "error" "缺少 cfst，请重新运行一键安装脚本，或手动安装 CloudflareSpeedTest 后重试。"
+				;;
+			*)
+				set_status "error" "缺少命令：$1"
+				;;
+		esac
 		log "ERROR: missing command: $1"
 		exit 1
 	fi
