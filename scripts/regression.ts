@@ -16,6 +16,13 @@ const adminApiSource = readFileSync(new URL('../src/admin-api.ts', import.meta.u
 assert.match(adminApiSource, /await isBearerAuthorized\(request, env\.ADMIN_TOKEN\)/);
 assert.doesNotMatch(adminApiSource, /timingSafeEqual/);
 
+const databaseSource = readFileSync(new URL('../src/database.ts', import.meta.url), 'utf8');
+assert.match(databaseSource, /TRIM\(UPPER\(node_results\.colo\)\) NOT IN \('', 'N\/A'\)/);
+
+const openwrtClientSource = readFileSync(new URL('../openwrt-packages/cf-ip-speed-client/files/usr/bin/cf-ip-speed-client', import.meta.url), 'utf8');
+assert.match(openwrtClientSource, /has_missing_colo\(\)/);
+assert.match(openwrtClientSource, /不会参与公开 DNS 优选/);
+
 const validIpv6 = [
   '2606:4700:3119::ac40:99e5',
   '::1',

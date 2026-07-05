@@ -403,6 +403,16 @@ best_node_fields() {
 	}' "$result_file"
 }
 
+has_missing_colo() {
+	nodes_json="$1"
+	case "$nodes_json" in
+		*'"colo":""'*|*'"colo":"N/A"'*|*'"colo":"n/a"'*|*'"colo":"N/a"'*|*'"colo":"n/A"'*)
+			return 0
+			;;
+	esac
+	return 1
+}
+
 ip_file_for_version() {
 	case "$1" in
 		v6) echo "$IP_V6_FILE" ;;
@@ -538,6 +548,9 @@ run_cfst_for_version() {
 	if [ -z "$nodes" ]; then
 		set_status "error" "${label} 结果文件中没有可用节点"
 		return 1
+	fi
+	if has_missing_colo "$nodes"; then
+		log "${label} cfst 结果中存在缺失地区码的节点；请检查 cfst 版本或结果 CSV 表头，这些节点不会参与公开 DNS 优选。"
 	fi
 
 	save_result_state "$ip_version" "$result_file" "$direct_check"

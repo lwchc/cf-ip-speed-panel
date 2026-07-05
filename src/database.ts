@@ -327,6 +327,7 @@ export async function rebuildAggregates(db: D1Database, rootDomain: string): Pro
          AND users.status = 'active'
          AND uploads.server_province_code != 'unknown'
          AND uploads.server_carrier IN ('ct', 'cm', 'cu')
+         AND TRIM(UPPER(node_results.colo)) NOT IN ('', 'N/A')
          AND node_results.created_at >= ?1
        ORDER BY node_results.speed DESC, node_results.latency ASC
        LIMIT 1000`
